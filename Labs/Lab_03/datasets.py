@@ -31,7 +31,7 @@ def split_samples(samples_file, train_file, test_file, ratio=0.8):
                         test_fp.write(d)
                 data = []
     return train_num, test_num
-                
+
 def get_list_from_filenames(file_path):
     with open(file_path) as f:
         lines = f.read().splitlines()
@@ -77,13 +77,13 @@ class Visapp:
         crop_img = img[int(y_min): int(y_max), int(x_min): int(x_max)]
 
         crop_img = cv2.resize(crop_img, (self.input_size, self.input_size))
-        
+
         crop_img = np.asarray(crop_img)
-        normed_img = (crop_img - crop_img.mean())/crop_img.std()
-        
+        normed_img = (crop_img - crop_img.mean())/crop_img.std() if crop_img.std() != 0 else crop_img
+
         return normed_img
-        
-    
+
+
     def __get_input_label(self, data_dir, file_name, annot_ext='.txt'):
         R = self.poses[file_name.split('/')[1] + ".png"]
         roll, yaw, pitch =   utils.euler_from_quaternion(R[0],R[1],R[2],R[3])
@@ -91,9 +91,9 @@ class Visapp:
         # Bin values
         bins = np.array(range(-99, 99, 3))
         bin_labels = np.digitize([yaw, pitch, roll], bins) - 1
-    
+
         cont_labels = [roll, yaw, pitch]
-    
+
         return bin_labels, cont_labels
 
     def __gen_filename_list(self, filename_list_file):
@@ -102,25 +102,25 @@ class Visapp:
                 for root, dirs, files in os.walk(self.data_dir):
                     for subdir in dirs:
                         subfiles = os.listdir(os.path.join(self.data_dir, subdir))
-                    
+
                         for f in subfiles:
                             if os.path.splitext(f)[1] == '.png':
                                 token = os.path.splitext(f)[0].split('-')
                                 filename = os.path.splitext(f)[0]
                                 # print(filename)
                                 tlf.write(subdir + '/' + filename + '\n')
-    
+
     def __gen_train_test_file(self, train_file, test_file, ratio=0.5):
         self.train_file = train_file
         self.test_file = test_file
         return split_samples(os.path.join(self.data_dir, self.data_file), self.train_file, self.test_file, ratio=ratio)
-    
+
     def train_num(self):
         return self.train_num
-    
+
     def test_num(self):
         return self.test_num
-    
+
     def save_test(self, name, save_dir, prediction):
         img_path = os.path.join(self.data_dir, name + '.png')
         print(prediction)
@@ -155,10 +155,10 @@ class Visapp:
         sample_file = self.train_file
         if test:
             sample_file = self.test_file
-    
+
         filenames = get_list_from_filenames(sample_file)
         file_num = len(filenames)
-        
+
         while True:
             if shuffle and not test:
                 idx = np.random.permutation(range(file_num))
@@ -187,11 +187,10 @@ class Visapp:
                 batch_yaw = np.array(batch_yaw)
                 batch_pitch = np.array(batch_pitch)
                 batch_roll = np.array(batch_roll)
-                
+
                 if test:
                     yield (batch_x, [batch_yaw, batch_pitch, batch_roll], names)
                 else:
                     yield (batch_x, [batch_yaw, batch_pitch, batch_roll])
             if test:
                 break
-

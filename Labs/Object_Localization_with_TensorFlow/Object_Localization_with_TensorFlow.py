@@ -1,10 +1,10 @@
 # coding: utf-8
 
-import tensorflow as tf 
+import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
+import pandas as pd
 from PIL import Image, ImageDraw
 from tensorflow.keras.layers import Input, Dense, Flatten, Conv2D, MaxPool2D, BatchNormalization, Dropout #Import some useful libraries
 
@@ -26,19 +26,19 @@ emojis = {
 
 plt.figure(figsize=(9, 9))
 
-for i, (j, e) in enumerate(emojis.items()):
-    plt.subplot(3, 3, i + 1)                                  #Plot images 3x3
-    plt.imshow(plt.imread(os.path.join('emojis', e['file']))) #imshow: Show image, imread: Read image, os.path.join: Add file to the path
-    plt.xlabel(e['name'])                                     #Add class label on x axis 
-    plt.xticks([])
-    plt.yticks([])
-plt.show()
+# for i, (j, e) in enumerate(emojis.items()):
+    # plt.subplot(3, 3, i + 1)                                  #Plot images 3x3
+    # plt.imshow(plt.imread(os.path.join('emojis', e['file']))) #imshow: Show image, imread: Read image, os.path.join: Add file to the path
+    # plt.xlabel(e['name'])                                     #Add class label on x axis
+    # plt.xticks([])
+    # plt.yticks([])
+# plt.show()
 
 
 # ## Task 3: Create Examples
 
 for class_id, values in emojis.items():                                            #Take class_id and values in emojis.items
-    png_file = Image.open(os.path.join('emojis', values['file'])).convert('RGBA')  #Open image in emojis, then convert them to RGBA 
+    png_file = Image.open(os.path.join('emojis', values['file'])).convert('RGBA')  #Open image in emojis, then convert them to RGBA
     png_file.load()                                                                #Load image
     new_file = Image.new("RGB", png_file.size, (255, 255, 255))                    #Create a new image with all white
     new_file.paste(png_file, mask=png_file.split()[3])                             #Paste emoji image on new image
@@ -52,13 +52,13 @@ def create_example():
   row = np.random.randint(0, 72)                                              #Random choose an int from 0 to 72, call row
   col = np.random.randint(0, 72)                                              #Random choose an int from 0 to 72, call col
   image[row: row + 72, col: col + 72, :] = np.array(emojis[class_id]['image'])#Add PIL value to "image" from random row to row+72 and from random col to col+72
-  return image.astype('uint8'), class_id, (row + 10) / 144, (col + 10) / 144  #Return image as uint8, class_id, row, col 
+  return image.astype('uint8'), class_id, (row + 10) / 144, (col + 10) / 144  #Return image as uint8, class_id, row, col
                                                                               #(original emoji image got 10 pixel margin on row and col, so we add 10 pix to get actual row and col, then we divide by 144 for normalize)
 
 
 
 image, class_id, row, col = create_example()
-plt.imshow(image);
+# plt.imshow(image);
 
 
 # ## Task 4: Plot Bounding Boxes
@@ -85,9 +85,9 @@ def plot_bounding_box(image, gt_coords, pred_coords=[], norm=False):       #imag
 
 
 image = plot_bounding_box(image, gt_coords=[row, col])
-plt.imshow(image)
-plt.title(emojis[class_id]['name'])
-plt.show()
+# plt.imshow(image)
+# plt.title(emojis[class_id]['name'])
+# plt.show()
 
 
 # ## Task 5: Data Generator
@@ -100,10 +100,10 @@ def data_generator(batch_size=16):                                         #batc
     bbox_batch = np.zeros((batch_size, 2))                                 #Create a zeros array for box(row, col)
 
     for i in range(0, batch_size):
-      image, class_id, row, col = create_example()                         
+      image, class_id, row, col = create_example()
       x_batch[i] = image / 255.                                            #image divide by 255 for normalizing
       y_batch[i, class_id] = 1.0                                           #Looks like => [0, 0, 0, 0, 1, 0, 0, 0, 0] (1 is for class_id if class_id is 5)
-      bbox_batch[i] = np.array([row, col])                                 
+      bbox_batch[i] = np.array([row, col])
     yield {'image': x_batch}, {'class_out': y_batch, 'box_out': bbox_batch}#"yield is a keyword that is used like return, except the function will return a generator"
 
 
@@ -114,9 +114,9 @@ class_id = np.argmax(label['class_out'][0])
 coords = label['box_out'][0]
 
 image = plot_bounding_box(image, coords, norm=True)
-plt.imshow(image)
-plt.title(emojis[class_id]['name'])
-plt.show()
+# plt.imshow(image)
+# plt.title(emojis[class_id]['name'])
+# plt.show()
 
 
 # ## Task 6: Model
@@ -127,7 +127,7 @@ input_ = Input(shape=(144, 144, 3), name='image')              #Input layer, sha
 x = input_
 
 for i in range(0, 5):
-  n_filters = 2**(4 + i)                                       
+  n_filters = 2**(4 + i)
   x = Conv2D(n_filters, 3, activation='relu')(x)
   x = BatchNormalization()(x)
   x = MaxPool2D(2)(x)
@@ -147,11 +147,11 @@ model.summary()
 class IoU(tf.keras.metrics.Metric):                                        #Custom IoU class, inheritance of Metric class
   def __init__(self, **kwargs):
     super(IoU, self).__init__(**kwargs)                                    #super() allow us to use Metric class' arguments
-    
+
     self.iou = self.add_weight(name='iou', initializer='zeros')            #add_weight: "Adds a new variable to the layer"
     self.total_iou = self.add_weight(name='total_iou', initializer='zeros')
     self.num_ex = self.add_weight(name='num_ex', initializer='zeros')
-  
+
   def update_state(self, y_true, y_pred, sample_weight=None):
     def get_box(y):                                                        #a function for getting bounding box coordinates
       rows, cols = y[:, 0], y[:, 1]
@@ -159,10 +159,10 @@ class IoU(tf.keras.metrics.Metric):                                        #Cust
       y1, y2 = rows, rows + 52
       x1, x2 = cols, cols + 52
       return x1, y1, x2, y2
-    
+
     def get_area(x1, y1, x2, y2):                                          #a function for getting area of bounding box
       return tf.math.abs(x2 - x1) * tf.math.abs(y2 - y1)
-    
+
     gt_x1, gt_y1, gt_x2, gt_y2 = get_box(y_true)                           #getting ground truth bounding box coordinates
     p_x1, p_y1, p_x2, p_y2 = get_box(y_pred)                               #getting prediction bounding box coordinates
 
@@ -170,7 +170,7 @@ class IoU(tf.keras.metrics.Metric):                                        #Cust
     i_y1 = tf.maximum(gt_y1, p_y1)                                         #return the maximum of gt_x1 and p_x1, assign to i_x1
     i_x2 = tf.minimum(gt_x2, p_x2)                                         #return the maximum of gt_x1 and p_x1, assign to i_x1
     i_y2 = tf.minimum(gt_y2, p_y2)                                         #return the maximum of gt_x1 and p_x1, assign to i_x1
-    
+
     i_area = get_area(i_x1, i_y1, i_x2, i_y2)                              #area of intersection(or overlap)
     u_area = get_area(gt_x1, gt_y1, gt_x2, gt_y2) + get_area(p_x1, p_y1, p_x2, p_y2) - i_area #area of union
 
@@ -178,12 +178,12 @@ class IoU(tf.keras.metrics.Metric):                                        #Cust
     self.num_ex.assign_add(1)
     self.total_iou.assign_add(tf.reduce_mean(iou))                         #tf.reduce_mean():"Computes the mean of elements across dimensions of a tensor"
     self.iou = tf.math.divide(self.total_iou, self.num_ex)                 #total_iou divide by num_ex, then assign to iou
-  
+
   def result(self):
-    return self.iou                                                       
-  
+    return self.iou
+
   def reset_state(self):                                                   #reseting the state
-    self.iou = self.add_weight(name='iou', initializer='zeros')            
+    self.iou = self.add_weight(name='iou', initializer='zeros')
     self.total_iou = self.add_weight(name='total_iou', initializer='zeros')
     self.num_ex = self.add_weight(name='num_ex', initializer='zeros')
 
@@ -219,29 +219,29 @@ def test_model(model, test_datagen):    #a function for test the model
   pred_class = np.argmax(pred_y[0])     #np.argmax: "Returns the indices of the maximum values along an axis"
   image = x[0]
 
-  gt = emojis[np.argmax(y[0])]['name']           
+  gt = emojis[np.argmax(y[0])]['name']
   pred_class_name = emojis[pred_class]['name']
 
   image = plot_bounding_box(image, gt_coords, pred_coords, norm=True)
   color = 'green' if gt == pred_class_name else 'red'
 
-  plt.imshow(image)
-  plt.xlabel(f'Pred: {pred_class_name}', color=color)
-  plt.ylabel(f'GT: {gt}', color=color)
-  plt.xticks([])
-  plt.yticks([])
+  # plt.imshow(image)
+  # plt.xlabel(f'Pred: {pred_class_name}', color=color)
+  # plt.ylabel(f'GT: {gt}', color=color)
+  # plt.xticks([])
+  # plt.yticks([])
 
 
 
 def test(model):                   #a function for show the test result
   test_datagen = data_generator(1)
 
-  plt.figure(figsize=(16, 4))
+  # plt.figure(figsize=(16, 4))
 
   for i in range(0, 6):
-    plt.subplot(1, 6, i + 1)
+    # plt.subplot(1, 6, i + 1)
     test_model(model, test_datagen)
-  plt.show()
+  # plt.show()
 
 
 
@@ -259,20 +259,20 @@ class ShowTestImages(tf.keras.callbacks.Callback): #a custom callback to show th
 
 def lr_schedule(epoch, lr):
   if (epoch + 1) % 5 == 0:
-    lr *= 0.2              #at the end of every 5 epochs, the learning rate will multiplied by 0.2 for gradient descent 
+    lr *= 0.2              #at the end of every 5 epochs, the learning rate will multiplied by 0.2 for gradient descent
   return max(lr, 3e-7)     #compare learning rate and 0.0000003, then return the largest number. Because we want the minimum of learning rate is 0.0000003
 
 
-_ = model.fit(
+history = model.fit(
     data_generator(),
     epochs=50,
     steps_per_epoch=500,
     callbacks=[
-               ShowTestImages(),                                                                #Custom callback
+              #  ShowTestImages(),                                                                #Custom callback
                tf.keras.callbacks.EarlyStopping(monitor='box_out_iou', patience=3, mode='max'), #Monitoring the box_out_iou for 3 epochs and if the quantity monitored has stopped increasing, then model.fit will be stop
                tf.keras.callbacks.LearningRateScheduler(lr_schedule)                            #"At the beginning of every epoch, this callback gets the updated learning rate value from schedule(lr_schedule) function"
     ]
 )
 
-
-
+pd.DataFrame(history.history).plot(figsize=(10,5))
+plt.show()
