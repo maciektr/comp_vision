@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "comp_vision"
+version = "0.1.0"
+description = ""
+authors = ["Maciej Trątnowiecki <mtratnowiecki@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "~3.8"
+numpy = "^1.23.4"
+scipy = "^1.9.3"
+opencv-python = "^4.6.0"
+Pillow = "^9.3.0"
+matplotlib = "^3.6.1"
+tensorflow = "^2.10.0"
+
+[tool.poetry.dev-dependencies]
+black = "^22.10.0"
+isort = "^5.10.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
